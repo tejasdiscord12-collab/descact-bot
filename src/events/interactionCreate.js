@@ -24,9 +24,12 @@ module.exports = {
                     const existingTicket = db.getTicketByOpener(interaction.guild.id, interaction.user.id);
                     if (existingTicket) return interaction.reply({ content: 'You already have an open ticket!', ephemeral: true });
 
+                    const categoryId = db.getTicketCategory(interaction.guild.id);
+
                     const channel = await interaction.guild.channels.create({
                         name: `🎫┃${interaction.user.username}`,
                         type: ChannelType.GuildText,
+                        parent: categoryId,
                         permissionOverwrites: [
                             {
                                 id: interaction.guild.id,

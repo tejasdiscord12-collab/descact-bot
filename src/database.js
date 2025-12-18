@@ -5,7 +5,7 @@ const dbPath = path.join(__dirname, '../database.json');
 
 // Initialize DB file if not exists
 if (!fs.existsSync(dbPath)) {
-    fs.writeFileSync(dbPath, JSON.stringify({ warns: [], tickets: [], customCommands: [], welcomeSettings: [], statusSettings: {}, invites: [], giveaways: [] }, null, 4));
+    fs.writeFileSync(dbPath, JSON.stringify({ warns: [], tickets: [], customCommands: [], welcomeSettings: [], statusSettings: {}, invites: [], giveaways: [], ticketSettings: [] }, null, 4));
 }
 
 function readDB() {
@@ -99,6 +99,25 @@ module.exports = {
             ticket.Locked = false;
             writeDB(db);
         }
+    },
+
+    // Ticket Settings
+    setTicketCategory: (guildId, categoryId) => {
+        const db = readDB();
+        if (!db.ticketSettings) db.ticketSettings = [];
+        const index = db.ticketSettings.findIndex(s => s.GuildID === guildId);
+        if (index !== -1) {
+            db.ticketSettings[index].CategoryID = categoryId;
+        } else {
+            db.ticketSettings.push({ GuildID: guildId, CategoryID: categoryId });
+        }
+        writeDB(db);
+    },
+    getTicketCategory: (guildId) => {
+        const db = readDB();
+        if (!db.ticketSettings) return null;
+        const settings = db.ticketSettings.find(s => s.GuildID === guildId);
+        return settings ? settings.CategoryID : null;
     },
 
     // Custom Commands

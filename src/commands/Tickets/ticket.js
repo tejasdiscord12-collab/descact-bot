@@ -16,6 +16,16 @@ module.exports = {
                 )
         )
         .addSubcommand(subcommand =>
+            subcommand.setName('set-category')
+                .setDescription('Sets the category where new tickets will be created.')
+                .addChannelOption(option =>
+                    option.setName('category')
+                        .setDescription('The category for tickets')
+                        .setRequired(true)
+                        .addChannelTypes(ChannelType.GuildCategory)
+                )
+        )
+        .addSubcommand(subcommand =>
             subcommand.setName('add')
                 .setDescription('Adds a user to the ticket.')
                 .addUserOption(option => option.setName('user').setDescription('The user to add').setRequired(true))
@@ -64,6 +74,12 @@ module.exports = {
 
             await targetChannel.send({ embeds: [embed], components: [button], files: [attachment] });
             return await interaction.reply({ content: `Ticket panel sent to ${targetChannel}`, ephemeral: true });
+        }
+
+        if (subcommand === 'set-category') {
+            const category = options.getChannel('category');
+            db.setTicketCategory(guild.id, category.id);
+            return await interaction.reply({ content: `New tickets will now be created in the **${category.name}** category.`, ephemeral: true });
         }
 
         const ticket = db.getTicketByChannel(channel.id);
