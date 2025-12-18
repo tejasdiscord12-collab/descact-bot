@@ -13,9 +13,10 @@ module.exports = {
                 .addIntegerOption(opt => opt.setName('winners').setDescription('Number of winners').setRequired(true))
                 .addStringOption(opt => opt.setName('prize').setDescription('What are you giving away?').setRequired(true))),
     async execute(interaction) {
+        await interaction.deferReply().catch(() => { });
         console.log(`[Giveaway] Command started by ${interaction.user.tag}`);
         if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
-            return interaction.reply({ content: 'You need `Manage Messages` permission to use this.', ephemeral: true });
+            return interaction.editReply({ content: 'You need `Manage Messages` permission to use this.', ephemeral: true });
         }
 
         const duration = interaction.options.getString('duration');
@@ -23,9 +24,7 @@ module.exports = {
         const prize = interaction.options.getString('prize');
 
         const durationMs = ms(duration);
-        if (!durationMs) return interaction.reply({ content: 'Invalid duration format! Use 1h, 1d, etc.', ephemeral: true });
-
-        await interaction.deferReply();
+        if (!durationMs) return interaction.editReply({ content: 'Invalid duration format! Use 1h, 1d, etc.', ephemeral: true });
 
         try {
             const endTimestamp = Date.now() + durationMs;
