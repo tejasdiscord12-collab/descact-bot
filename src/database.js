@@ -5,7 +5,7 @@ const dbPath = path.join(__dirname, '../database.json');
 
 // Initialize DB file if not exists
 if (!fs.existsSync(dbPath)) {
-    fs.writeFileSync(dbPath, JSON.stringify({ warns: [], tickets: [], customCommands: [], welcomeSettings: [], statusSettings: {} }, null, 4));
+    fs.writeFileSync(dbPath, JSON.stringify({ warns: [], tickets: [], customCommands: [], welcomeSettings: [], statusSettings: {}, invites: [], giveaways: [] }, null, 4));
 }
 
 function readDB() {
@@ -158,5 +158,44 @@ module.exports = {
     getAllStatusSettings: () => {
         const db = readDB();
         return db.statusSettings || {};
+    },
+
+    // Invites
+    addInvite: (guildId, userId, amount, type) => {
+        const db = readDB();
+        if (!db.invites) db.invites = [];
+        let userInvites = db.invites.find(i => i.GuildID === guildId && i.UserID === userId);
+        if (!userInvites) {
+            userInvites = { GuildID: guildId, UserID: userId, Regular: 0, Fake: 0, Left: 0, Total: 0 };
+            db.invites.push(userInvites);
+        }
+        if (type === 'regular') userInvites.Regular += amount;
+        else if (type === 'fake') userInvites.Fake += amount;
+        else if (type === 'left') userInvites.Left += amount;
+        userInvites.Total = userInvites.Regular - userInvites.Fake - userInvites.Left;
+        writeDB(db);
+    },
+    getInvites: (guildId, userId) => {
+        const db = readDB();
+        if (!db.invites) return { Regular: 0, Fake: 0, Left: 0, Total: 0 };
+        return db.invites.find(i => i.GuildID === guildId && i.UserID === userId) || { Regular: 0, Fake: 0, Left: 0, Total: 0 };
+    },
+
+    // Giveaways
+    createGiveaway: (giveawayData) => {
+        const db = readDB();
+        if (!db.giveaways) db.giveaways = [];
+        db.giveaways.push(giveawayData);
+        writeDB(db);
+    },
+    getGiveaways: () => {
+        const db = readDB();
+        return db.giveaways || [];
+    },
+    endGiveaway: (messageId) => {
+        const db = readDB();
+        if (!db.giveaways) return;
+        db.giveaways = db.giveaways.filter(g => g.MessageID !== messageId);
+        writeDB(db);
     }
 };
