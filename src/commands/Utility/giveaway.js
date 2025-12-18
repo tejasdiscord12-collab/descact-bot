@@ -4,16 +4,16 @@ const ms = require('ms');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('giveaway')
+        .setName('g')
         .setDescription('Manage giveaways in the server.')
         .addSubcommand(sub =>
-            sub.setName('start')
+            sub.setName('create')
                 .setDescription('Start a new giveaway.')
                 .addStringOption(opt => opt.setName('duration').setDescription('Duration (e.g., 1h, 1d)').setRequired(true))
                 .addIntegerOption(opt => opt.setName('winners').setDescription('Number of winners').setRequired(true))
                 .addStringOption(opt => opt.setName('prize').setDescription('What are you giving away?').setRequired(true))),
     async execute(interaction) {
-        await interaction.deferReply().catch(() => { });
+        await interaction.deferReply();
         console.log(`[Giveaway] Command started by ${interaction.user.tag}`);
         if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
             return interaction.editReply({ content: 'You need `Manage Messages` permission to use this.', ephemeral: true });
