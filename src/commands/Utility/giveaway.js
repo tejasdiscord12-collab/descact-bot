@@ -24,26 +24,33 @@ module.exports = {
         const durationMs = ms(duration);
         if (!durationMs) return interaction.reply({ content: 'Invalid duration format! Use 1h, 1d, etc.', ephemeral: true });
 
-        const endTimestamp = Date.now() + durationMs;
+        await interaction.deferReply();
 
-        const embed = new EmbedBuilder()
-            .setTitle('🎉 GIVEAWAY 🎉')
-            .setDescription(`React with 🎉 to enter!\n\n**Prize:** ${prize}\n**Winners:** ${winnersCount}\n**Ends:** <t:${Math.floor(endTimestamp / 1000)}:R>`)
-            .setColor('#FEE75C')
-            .setFooter({ text: `Ends at` })
-            .setTimestamp(endTimestamp);
+        try {
+            const endTimestamp = Date.now() + durationMs;
 
-        const message = await interaction.reply({ embeds: [embed], fetchReply: true });
-        await message.react('🎉');
+            const embed = new EmbedBuilder()
+                .setTitle('🎉 GIVEAWAY 🎉')
+                .setDescription(`React with 🎉 to enter!\n\n**Prize:** ${prize}\n**Winners:** ${winnersCount}\n**Ends:** <t:${Math.floor(endTimestamp / 1000)}:R>`)
+                .setColor('#FEE75C')
+                .setFooter({ text: `Ends at` })
+                .setTimestamp(endTimestamp);
 
-        db.createGiveaway({
-            MessageID: message.id,
-            ChannelID: interaction.channel.id,
-            GuildID: interaction.guild.id,
-            Prize: prize,
-            Winners: winnersCount,
-            EndAt: endTimestamp,
-            HostedBy: interaction.user.id
-        });
+            const message = await interaction.editReply({ embeds: [embed], fetchReply: true });
+            await message.react('🎉').catch(err => console.error('Failed to react to giveaway:', err));
+
+            db.createGiveaway({
+                MessageID: message.id,
+                ChannelID: interaction.channel.id,
+                GuildID: interaction.guild.id,
+                Prize: prize,
+                Winners: winnersCount,
+                EndAt: endTimestamp,
+                HostedBy: interaction.user.id
+            });
+        } catch (error) {
+            console.error('Giveaway Start Error:', error);
+            await interaction.editReply({ content: 'There was an error starting the giveaway.' });
+        }
     }
 };
