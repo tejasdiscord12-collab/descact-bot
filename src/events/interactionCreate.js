@@ -28,25 +28,35 @@ module.exports = {
                     await interaction.deferReply({ ephemeral: true });
 
                     const categoryId = db.getTicketCategory(interaction.guild.id);
+                    const supportRoleId = db.getTicketSupportRole(interaction.guild.id);
+
+                    const permissionOverwrites = [
+                        {
+                            id: interaction.guild.id,
+                            deny: [PermissionsBitField.Flags.ViewChannel],
+                        },
+                        {
+                            id: interaction.user.id,
+                            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                        },
+                        {
+                            id: client.user.id,
+                            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                        }
+                    ];
+
+                    if (supportRoleId) {
+                        permissionOverwrites.push({
+                            id: supportRoleId,
+                            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                        });
+                    }
 
                     const channel = await interaction.guild.channels.create({
                         name: `🎫┃${interaction.user.username}`,
                         type: ChannelType.GuildText,
                         parent: categoryId,
-                        permissionOverwrites: [
-                            {
-                                id: interaction.guild.id,
-                                deny: [PermissionsBitField.Flags.ViewChannel],
-                            },
-                            {
-                                id: interaction.user.id,
-                                allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
-                            },
-                            {
-                                id: client.user.id,
-                                allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
-                            }
-                        ],
+                        permissionOverwrites: permissionOverwrites,
                     });
 
                     db.createTicket({

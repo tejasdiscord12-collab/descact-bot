@@ -27,6 +27,16 @@ module.exports = {
                 )
         )
         .addSubcommand(subcommand =>
+            subcommand.setName('set-section')
+                .setDescription('Sets the section (category) where new tickets will be created.')
+                .addChannelOption(option =>
+                    option.setName('category')
+                        .setDescription('The category (section) for tickets')
+                        .setRequired(true)
+                        .addChannelTypes(ChannelType.GuildCategory)
+                )
+        )
+        .addSubcommand(subcommand =>
             subcommand.setName('add')
                 .setDescription('Adds a user to the ticket.')
                 .addUserOption(option => option.setName('user').setDescription('The user to add').setRequired(true))
@@ -43,6 +53,21 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand.setName('close')
                 .setDescription('Closes the ticket.')
+        )
+        .addSubcommand(subcommand =>
+            subcommand.setName('role')
+                .setDescription('Adds a role to the ticket.')
+                .addRoleOption(option => option.setName('role').setDescription('The role to add').setRequired(true))
+        )
+        .addSubcommand(subcommand =>
+            subcommand.setName('remove-role')
+                .setDescription('Removes a role from the ticket.')
+                .addRoleOption(option => option.setName('role').setDescription('The role to remove').setRequired(true))
+        )
+        .addSubcommand(subcommand =>
+            subcommand.setName('support-role')
+                .setDescription('Manage the global support role for all tickets.')
+                .addRoleOption(option => option.setName('role').setDescription('The role to set as support role').setRequired(true))
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
     async execute(interaction) {
@@ -81,18 +106,26 @@ module.exports = {
                         .setEmoji('🎫')
                 );
 
-            await targetChannel.send({ embeds: [embed], components: [button], files: [attachment] });
+            await targetChannel.send({ embeds: [embed], components: [button], files: files });
             return await interaction.reply({ content: `Ticket panel sent to ${targetChannel}`, ephemeral: true });
         }
 
-        if (subcommand === 'set-category') {
+        if (subcommand === 'set-category' || subcommand === 'set-section') {
             const category = options.getChannel('category');
             db.setTicketCategory(guild.id, category.id);
-            return await interaction.reply({ content: `New tickets will now be created in the **${category.name}** category.`, ephemeral: true });
+            return await interaction.reply({ content: `New tickets will now be created in the **${category.name}** category (section).`, ephemeral: true });
+        }
+
+        if (subcommand === 'support-role') {
+            const role = options.getRole('role');
+            db.setTicketSupportRole(guild.id, role.id);
+            return await interaction.reply({ content: `The global support role has been set to ${role}. This role will now have access to all new tickets.`, ephemeral: true });
         }
 
         const ticket = db.getTicketByChannel(channel.id);
-        if (!ticket) return interaction.reply({ content: 'This is not a ticket channel!', ephemeral: true });
+        if (!ticket && !['setup', 'set-category', 'support-role'].includes(subcommand)) {
+            return interaction.reply({ content: 'This is not a ticket channel!', ephemeral: true });
+        }
 
         if (subcommand === 'add') {
             const member = options.getMember('user');
@@ -110,6 +143,22 @@ module.exports = {
             if (!member) return interaction.reply({ content: 'Member not found!', ephemeral: true });
             await channel.permissionOverwrites.delete(member.id);
             return await interaction.reply({ content: `Removed ${member} from the ticket.` });
+        }
+
+        if (subcommand === 'role') {
+            const role = options.getRole('role');
+            await channel.permissionOverwrites.edit(role.id, {
+                ViewChannel: true,
+                SendMessages: true,
+                ReadMessageHistory: true
+            });
+            return await interaction.reply({ content: `Added ${role} to the ticket.` });
+        }
+
+        if (subcommand === 'remove-role') {
+            const role = options.getRole('role');
+            await channel.permissionOverwrites.delete(role.id);
+            return await interaction.reply({ content: `Removed ${role} from the ticket.` });
         }
 
         if (subcommand === 'claim') {

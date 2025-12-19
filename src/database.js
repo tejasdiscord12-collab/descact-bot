@@ -16,7 +16,8 @@ const defaultDB = {
     statusSettings: {},
     invites: [],
     giveaways: [],
-    ticketSettings: []
+    ticketSettings: [],
+    ticketSupportRoles: []
 };
 
 function readDB() {
@@ -140,6 +141,25 @@ module.exports = {
         if (!db.ticketSettings) return null;
         const settings = db.ticketSettings.find(s => s.GuildID === guildId);
         return settings ? settings.CategoryID : null;
+    },
+
+    // Ticket Support Roles
+    setTicketSupportRole: (guildId, roleId) => {
+        const db = readDB();
+        if (!db.ticketSupportRoles) db.ticketSupportRoles = [];
+        const index = db.ticketSupportRoles.findIndex(s => s.GuildID === guildId);
+        if (index !== -1) {
+            db.ticketSupportRoles[index].RoleID = roleId;
+        } else {
+            db.ticketSupportRoles.push({ GuildID: guildId, RoleID: roleId });
+        }
+        writeDB(db);
+    },
+    getTicketSupportRole: (guildId) => {
+        const db = readDB();
+        if (!db.ticketSupportRoles) return null;
+        const settings = db.ticketSupportRoles.find(s => s.GuildID === guildId);
+        return settings ? settings.RoleID : null;
     },
 
     // Custom Commands
