@@ -74,6 +74,9 @@ module.exports = {
         const { options, guild, channel, user } = interaction;
         const subcommand = options.getSubcommand();
 
+        // Defer all interactions to prevent "Application did not respond"
+        await interaction.deferReply({ ephemeral: ['setup', 'set-category', 'set-section', 'support-role'].includes(subcommand) });
+
         if (subcommand === 'setup') {
             const channelInput = options.getChannel('channel');
             const imagePath = './assets/banner.jpg';
@@ -107,42 +110,42 @@ module.exports = {
                 );
 
             await targetChannel.send({ embeds: [embed], components: [button], files: files });
-            return await interaction.reply({ content: `Ticket panel sent to ${targetChannel}`, ephemeral: true });
+            return await interaction.editReply({ content: `Ticket panel sent to ${targetChannel}` });
         }
 
         if (subcommand === 'set-category' || subcommand === 'set-section') {
             const category = options.getChannel('category');
             db.setTicketCategory(guild.id, category.id);
-            return await interaction.reply({ content: `New tickets will now be created in the **${category.name}** category (section).`, ephemeral: true });
+            return await interaction.editReply({ content: `New tickets will now be created in the **${category.name}** category (section).` });
         }
 
         if (subcommand === 'support-role') {
             const role = options.getRole('role');
             db.setTicketSupportRole(guild.id, role.id);
-            return await interaction.reply({ content: `The global support role has been set to ${role}. This role will now have access to all new tickets.`, ephemeral: true });
+            return await interaction.editReply({ content: `The global support role has been set to ${role}. This role will now have access to all new tickets.` });
         }
 
         const ticket = db.getTicketByChannel(channel.id);
         if (!ticket && !['setup', 'set-category', 'support-role'].includes(subcommand)) {
-            return interaction.reply({ content: 'This is not a ticket channel!', ephemeral: true });
+            return await interaction.editReply({ content: 'This is not a ticket channel!' });
         }
 
         if (subcommand === 'add') {
             const member = options.getMember('user');
-            if (!member) return interaction.reply({ content: 'Member not found!', ephemeral: true });
+            if (!member) return await interaction.editReply({ content: 'Member not found!' });
             await channel.permissionOverwrites.edit(member.id, {
                 ViewChannel: true,
                 SendMessages: true,
                 ReadMessageHistory: true
             });
-            return await interaction.reply({ content: `Added ${member} to the ticket.` });
+            return await interaction.editReply({ content: `Added ${member} to the ticket.` });
         }
 
         if (subcommand === 'remove') {
             const member = options.getMember('user');
-            if (!member) return interaction.reply({ content: 'Member not found!', ephemeral: true });
+            if (!member) return await interaction.editReply({ content: 'Member not found!' });
             await channel.permissionOverwrites.delete(member.id);
-            return await interaction.reply({ content: `Removed ${member} from the ticket.` });
+            return await interaction.editReply({ content: `Removed ${member} from the ticket.` });
         }
 
         if (subcommand === 'role') {
@@ -152,27 +155,27 @@ module.exports = {
                 SendMessages: true,
                 ReadMessageHistory: true
             });
-            return await interaction.reply({ content: `Added ${role} to the ticket.` });
+            return await interaction.editReply({ content: `Added ${role} to the ticket.` });
         }
 
         if (subcommand === 'remove-role') {
             const role = options.getRole('role');
             await channel.permissionOverwrites.delete(role.id);
-            return await interaction.reply({ content: `Removed ${role} from the ticket.` });
+            return await interaction.editReply({ content: `Removed ${role} from the ticket.` });
         }
 
         if (subcommand === 'claim') {
-            if (ticket.Claimed) return interaction.reply({ content: `This ticket is already claimed by <@${ticket.ClaimedBy}>`, ephemeral: true });
+            if (ticket.Claimed) return await interaction.editReply({ content: `This ticket is already claimed by <@${ticket.ClaimedBy}>` });
 
             db.claimTicket(channel.id, user.id);
-            await interaction.reply({ content: `Ticket claimed by ${user}.` });
+            await interaction.editReply({ content: `Ticket claimed by ${user}.` });
         }
 
         if (subcommand === 'close') {
-            if (ticket.Closed) return interaction.reply({ content: 'This ticket is already closed!', ephemeral: true });
+            if (ticket.Closed) return await interaction.editReply({ content: 'This ticket is already closed!' });
 
             db.closeTicket(channel.id);
-            await interaction.reply({ content: `Ticket closed by ${user}.` });
+            await interaction.editReply({ content: `Ticket closed by ${user}.` });
             setTimeout(() => {
                 channel.delete().catch(() => { });
             }, 5000);
