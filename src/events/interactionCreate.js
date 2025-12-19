@@ -34,6 +34,8 @@ module.exports = {
                     const categoryId = db.getTicketCategory(interaction.guild.id);
                     const supportRoleId = db.getTicketSupportRole(interaction.guild.id);
 
+                    console.log(`[Ticket Creation] Guild: ${interaction.guild.id}, Category: ${categoryId}, Support Role: ${supportRoleId}`);
+
                     const permissionOverwrites = [
                         {
                             id: interaction.guild.id,
@@ -54,6 +56,9 @@ module.exports = {
                             id: supportRoleId,
                             allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
                         });
+                        console.log(`[Ticket Creation] Added support role ${supportRoleId} to overwrites.`);
+                    } else {
+                        console.log(`[Ticket Creation] No support role configured for this guild.`);
                     }
 
                     const channel = await interaction.guild.channels.create({
@@ -62,6 +67,7 @@ module.exports = {
                         parent: categoryId,
                         permissionOverwrites: permissionOverwrites,
                     });
+                    console.log(`[Ticket Creation] Channel created: ${channel.id}`);
 
                     db.createTicket({
                         GuildID: interaction.guild.id,
