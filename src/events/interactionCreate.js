@@ -32,9 +32,9 @@ module.exports = {
                     await interaction.deferReply({ ephemeral: true });
 
                     const categoryId = db.getTicketCategory(interaction.guild.id);
-                    const supportRoleId = db.getTicketSupportRole(interaction.guild.id);
+                    const supportRoleIds = db.getTicketSupportRoles(interaction.guild.id);
 
-                    console.log(`[Ticket Creation] Guild: ${interaction.guild.id}, Category: ${categoryId}, Support Role: ${supportRoleId}`);
+                    console.log(`[Ticket Creation] Guild: ${interaction.guild.id}, Category: ${categoryId}, Support Roles: ${supportRoleIds.join(', ')}`);
 
                     const permissionOverwrites = [
                         {
@@ -51,14 +51,16 @@ module.exports = {
                         }
                     ];
 
-                    if (supportRoleId) {
-                        permissionOverwrites.push({
-                            id: supportRoleId,
-                            allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                    if (supportRoleIds.length > 0) {
+                        supportRoleIds.forEach(roleId => {
+                            permissionOverwrites.push({
+                                id: roleId,
+                                allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory],
+                            });
                         });
-                        console.log(`[Ticket Creation] Added support role ${supportRoleId} to overwrites.`);
+                        console.log(`[Ticket Creation] Added ${supportRoleIds.length} support roles to overwrites.`);
                     } else {
-                        console.log(`[Ticket Creation] No support role configured for this guild.`);
+                        console.log(`[Ticket Creation] No support roles configured for this guild.`);
                     }
 
                     const channel = await interaction.guild.channels.create({

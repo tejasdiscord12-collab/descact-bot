@@ -1,5 +1,6 @@
 const { EmbedBuilder, AttachmentBuilder } = require('discord.js');
 const db = require('../database');
+const fs = require('fs');
 
 module.exports = {
     name: 'guildMemberAdd',

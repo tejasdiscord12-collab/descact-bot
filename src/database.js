@@ -144,22 +144,46 @@ module.exports = {
     },
 
     // Ticket Support Roles
-    setTicketSupportRole: (guildId, roleId) => {
+    addTicketSupportRole: (guildId, roleId) => {
         const db = readDB();
         if (!db.ticketSupportRoles) db.ticketSupportRoles = [];
-        const index = db.ticketSupportRoles.findIndex(s => s.GuildID === guildId);
-        if (index !== -1) {
-            db.ticketSupportRoles[index].RoleID = roleId;
+        let guildSettings = db.ticketSupportRoles.find(s => s.GuildID === guildId);
+        if (guildSettings) {
+            if (!guildSettings.RoleIDs) {
+                guildSettings.RoleIDs = guildSettings.RoleID ? [guildSettings.RoleID] : [];
+                delete guildSettings.RoleID;
+            }
+            if (!guildSettings.RoleIDs.includes(roleId)) {
+                guildSettings.RoleIDs.push(roleId);
+            }
         } else {
-            db.ticketSupportRoles.push({ GuildID: guildId, RoleID: roleId });
+            db.ticketSupportRoles.push({ GuildID: guildId, RoleIDs: [roleId] });
         }
         writeDB(db);
     },
-    getTicketSupportRole: (guildId) => {
+    removeTicketSupportRole: (guildId, roleId) => {
         const db = readDB();
-        if (!db.ticketSupportRoles) return null;
+        if (!db.ticketSupportRoles) return;
+        const guildSettings = db.ticketSupportRoles.find(s => s.GuildID === guildId);
+        if (guildSettings) {
+            if (!guildSettings.RoleIDs && guildSettings.RoleID) {
+                guildSettings.RoleIDs = [guildSettings.RoleID];
+                delete guildSettings.RoleID;
+            }
+            if (guildSettings.RoleIDs) {
+                guildSettings.RoleIDs = guildSettings.RoleIDs.filter(id => id !== roleId);
+                writeDB(db);
+            }
+        }
+    },
+    getTicketSupportRoles: (guildId) => {
+        const db = readDB();
+        if (!db.ticketSupportRoles) return [];
         const settings = db.ticketSupportRoles.find(s => s.GuildID === guildId);
-        return settings ? settings.RoleID : null;
+        if (!settings) return [];
+        if (settings.RoleIDs) return settings.RoleIDs;
+        if (settings.RoleID) return [settings.RoleID];
+        return [];
     },
 
     // Custom Commands

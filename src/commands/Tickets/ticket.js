@@ -64,10 +64,23 @@ module.exports = {
                 .setDescription('Removes a role from the ticket.')
                 .addRoleOption(option => option.setName('role').setDescription('The role to remove').setRequired(true))
         )
-        .addSubcommand(subcommand =>
-            subcommand.setName('support-role')
-                .setDescription('Manage the global support role for all tickets.')
-                .addRoleOption(option => option.setName('role').setDescription('The role to set as support role').setRequired(true))
+        .addSubcommandGroup(group =>
+            group.setName('support-role')
+                .setDescription('Manage the global support roles for all tickets.')
+                .addSubcommand(subcommand =>
+                    subcommand.setName('add')
+                        .setDescription('Adds a role to the support team.')
+                        .addRoleOption(option => option.setName('role').setDescription('The role to add').setRequired(true))
+                )
+                .addSubcommand(subcommand =>
+                    subcommand.setName('remove')
+                        .setDescription('Removes a role from the support team.')
+                        .addRoleOption(option => option.setName('role').setDescription('The role to remove').setRequired(true))
+                )
+                .addSubcommand(subcommand =>
+                    subcommand.setName('list')
+                        .setDescription('Lists all configured support roles.')
+                )
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
     async execute(interaction) {
@@ -121,10 +134,30 @@ module.exports = {
             return await interaction.editReply({ content: `New tickets will now be created in the **${category.name}** category (section).` });
         }
 
-        if (subcommand === 'support-role') {
+        if (subcommand === 'add' && interaction.options.getSubcommandGroup() === 'support-role') {
             const role = options.getRole('role');
-            db.setTicketSupportRole(guild.id, role.id);
-            return await interaction.editReply({ content: `The global support role has been set to ${role}. This role will now have access to all new tickets.` });
+            db.addTicketSupportRole(guild.id, role.id);
+            return await interaction.editReply({ content: `The role ${role} has been added to the support team. This role will now have access to all new tickets.` });
+        }
+
+        if (subcommand === 'remove' && interaction.options.getSubcommandGroup() === 'support-role') {
+            const role = options.getRole('role');
+            db.removeTicketSupportRole(guild.id, role.id);
+            return await interaction.editReply({ content: `The role ${role} has been removed from the support team.` });
+        }
+
+        if (subcommand === 'list' && interaction.options.getSubcommandGroup() === 'support-role') {
+            const roleIds = db.getTicketSupportRoles(guild.id);
+            if (!roleIds || roleIds.length === 0) {
+                return await interaction.editReply({ content: 'No support roles have been configured yet.' });
+            }
+            const roles = roleIds.map(id => `<@&${id}>`).join('\n');
+            const embed = new EmbedBuilder()
+                .setTitle('📋 Nexter Cloud | Support Roles')
+                .setDescription(`The following roles have access to all new tickets:\n\n${roles}`)
+                .setColor('#5865F2')
+                .setTimestamp();
+            return await interaction.editReply({ embeds: [embed] });
         }
 
         const ticket = db.getTicketByChannel(channel.id);
