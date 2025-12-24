@@ -63,11 +63,20 @@ module.exports = {
         if (!channel) return;
 
         const embed = new EmbedBuilder()
-            .setTitle(`Welcome to ${member.guild.name}!`)
-            .setDescription(`Hello ${member}, welcome to the server! \n\n**Invited by:** ${inviterText} (**${inviteCount}** invites)`)
-            .setColor('#5865F2')
+            .setAuthor({ name: `New Member Joined!`, iconURL: member.user.displayAvatarURL({ dynamic: true }) })
+            .setTitle(`Welcome to ${member.guild.name}`)
+            .setDescription(`Hello ${member}! We are excited to have you here. Please make sure to read the rules and enjoy your stay!`)
+            .addFields(
+                { name: '👤 User', value: `${member.user.tag}`, inline: true },
+                { name: '🆔 ID', value: `\`${member.id}\``, inline: true },
+                { name: '📅 Account Created', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true },
+                { name: '✉️ Invited By', value: `${inviterText}`, inline: true },
+                { name: '📊 Invite Count', value: `\`${inviteCount}\` invites`, inline: true },
+                { name: '🚀 Member Count', value: `\`${member.guild.memberCount}\``, inline: true }
+            )
+            .setColor('#2B2D31')
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-            .setFooter({ text: `Member #${member.guild.memberCount}` })
+            .setFooter({ text: `Desact.Core | Providing Quality`, iconURL: member.guild.iconURL() })
             .setTimestamp();
 
         await channel.send({ content: `Welcome ${member}!`, embeds: [embed] });
