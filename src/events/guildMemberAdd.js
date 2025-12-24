@@ -4,7 +4,16 @@ const db = require('../database');
 module.exports = {
     name: 'guildMemberAdd',
     async execute(member, client) {
-        // Invite Tracking
+        // --- 1. Auto Role ---
+        const autoRoleId = db.getAutoRole(member.guild.id);
+        if (autoRoleId) {
+            const role = member.guild.roles.cache.get(autoRoleId);
+            if (role) {
+                await member.roles.add(role).catch(err => console.error(`Failed to give auto-role to ${member.user.tag}:`, err));
+            }
+        }
+
+        // --- 2. Invite Tracking ---
         const newInvites = await member.guild.invites.fetch().catch(() => null);
         const oldInvites = client.invites.get(member.guild.id);
         const invite = newInvites?.find(i => i.uses > (oldInvites?.get(i.code) || 0));
@@ -21,14 +30,27 @@ module.exports = {
             const inviter = invite.inviter;
             if (inviter) {
                 inviterText = `<@${inviter.id}>`;
-                // Check for fake (account age < 1 day)
-                const isFake = (Date.now() - member.user.createdTimestamp) < 1000 * 60 * 60 * 24;
-                await db.addInvite(member.guild.id, inviter.id, 1, isFake ? 'fake' : 'regular');
 
-                // Store member -> inviter mapping
-                db.addMemberInvite(member.guild.id, member.id, inviter.id);
+                // Check if this is a rejoin
+                const oldInviterId = db.addMemberInvite(member.guild.id, member.id, inviter.id);
 
-                // Fetch updated invite count
+                if (oldInviterId) {
+                    // It's a rejoin! 
+                    // 1. Decrement "Left" from the OLD inviter
+                    db.addInvite(member.guild.id, oldInviterId, -1, 'left');
+
+                    // 2. If it's a NEW inviter (switched link), add to them
+                    if (oldInviterId !== inviter.id) {
+                        const isFake = (Date.now() - member.user.createdTimestamp) < 1000 * 60 * 60 * 24;
+                        await db.addInvite(member.guild.id, inviter.id, 1, isFake ? 'fake' : 'regular');
+                    }
+                } else {
+                    // First time joining
+                    const isFake = (Date.now() - member.user.createdTimestamp) < 1000 * 60 * 60 * 24;
+                    await db.addInvite(member.guild.id, inviter.id, 1, isFake ? 'fake' : 'regular');
+                }
+
+                // Fetch updated invite count for the CURRENT inviter
                 const status = db.getInvites(member.guild.id, inviter.id);
                 inviteCount = status.Total;
             }
