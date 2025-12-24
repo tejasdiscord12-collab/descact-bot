@@ -1,55 +1,49 @@
-const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, StringSelectMenuBuilder } = require('discord.js');
-const db = require('../../database');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ticket')
-        .setDescription('Ticket system commands.')
+        .setDescription('Manage the ticket system')
         .addSubcommand(subcommand =>
-            subcommand.setName('setup')
-                .setDescription('Sets up the ticket system.')
+            subcommand
+                .setName('setup')
+                .setDescription('Setup the ticket panel')
                 .addChannelOption(option =>
                     option.setName('channel')
-                        .setDescription('Channel to send the ticket panel to')
-                        .setRequired(true)
+                        .setDescription('The channel to send the panel to')
                         .addChannelTypes(ChannelType.GuildText)
+                        .setRequired(true)
                 )
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels),
-    async execute(interaction) {
-        const { options, guild } = interaction;
-        const subcommand = options.getSubcommand();
 
-        if (subcommand === 'setup') {
-            const targetChannel = options.getChannel('channel');
+    async execute(interaction) {
+        const { options } = interaction;
+        const sub = options.getSubcommand();
+
+        if (sub === 'setup') {
+            const channel = options.getChannel('channel');
 
             const embed = new EmbedBuilder()
-                .setTitle('🛠️ Help Desk')
-                .setDescription(
-                    `🚨 **To ensure efficient support, please select the correct category below.**\n\n` +
-                    `• **Purchase:** VPS or Server hosting help.\n` +
-                    `• **Support:** General questions.\n` +
-                    `• **Bugs:** Report technical issues.\n\n` +
-                    `Click the dropdown menu to open a ticket.`
-                )
-                .setFooter({ text: `Desact.Core • ${guild.name}` })
-                .setTimestamp()
-                .setColor('#2B2D31');
+                .setTitle('🎫  Create a Ticket')
+                .setDescription('Select the category that best matches your issue from the menu below.')
+                .setColor('Blurple')
+                .setFooter({ text: 'Support System' });
 
             const row = new ActionRowBuilder()
                 .addComponents(
                     new StringSelectMenuBuilder()
-                        .setCustomId('ticket_select')
-                        .setPlaceholder('Select a support option')
+                        .setCustomId('ticket_create_select')
+                        .setPlaceholder('Select a category...')
                         .addOptions(
-                            { label: 'Purchase', description: 'VPS or Server purchase help', value: 'purchase', emoji: '💳' },
-                            { label: 'Support', description: 'General questions', value: 'support', emoji: '✉️' },
-                            { label: 'Bugs', description: 'Report a bug', value: 'bug_report', emoji: '⚠️' },
-                        ),
+                            { label: 'Purchase Support', value: 'purchase', description: 'Help with payments or purchases', emoji: '💳' },
+                            { label: 'General Support', value: 'support', description: 'General questions and help', emoji: '🆘' },
+                            { label: 'Bug Report', value: 'bug', description: 'Report a glitch or error', emoji: '🐛' }
+                        )
                 );
 
-            await targetChannel.send({ embeds: [embed], components: [row] });
-            return await interaction.reply({ content: `✅ Ticket panel sent to ${targetChannel}`, ephemeral: true });
+            await channel.send({ embeds: [embed], components: [row] });
+            return interaction.reply({ content: `✅ Ticket panel sent to ${channel}`, ephemeral: true });
         }
     }
 };

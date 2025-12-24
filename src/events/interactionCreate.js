@@ -1,106 +1,68 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, PermissionFlagsBits } = require('discord.js');
+const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const db = require('../database');
 
 module.exports = {
-    name: 'interactionCreate',
+    name: Events.InteractionCreate,
     async execute(interaction, client) {
+        // Logging for debugging
+        console.log(`[Interaction] Type: ${interaction.type}, ID: ${interaction.customId || 'N/A'}, User: ${interaction.user.tag}`);
+
         try {
+            // 1. Handle Chat Commands
             if (interaction.isChatInputCommand()) {
                 const command = client.commands.get(interaction.commandName);
                 if (!command) return;
-
-                console.log(`[Interaction] Command: /${interaction.commandName} by ${interaction.user.tag}`);
                 await command.execute(interaction, client);
-            } else if (interaction.isStringSelectMenu()) {
-                if (interaction.customId === 'ticket_select') {
-                    console.log(`[Interaction] Select Menu: ticket_select by ${interaction.user.tag}`);
-                    const { guild, user, values } = interaction;
-                    const type = values[0];
+                return;
+            }
 
-                    await interaction.deferReply({ ephemeral: true });
+            // 2. Handle Ticket Select Menu
+            if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_create_select') {
+                await interaction.deferReply({ ephemeral: true });
 
-                    const ticketId = Math.floor(Math.random() * 9000) + 1000;
-                    const channelName = `ticket-${type}-${user.username}`;
+                const { guild, user, values } = interaction;
+                const type = values[0]; // purchase, support, or bug
+                const channelName = `ticket-${user.username}-${type}`;
 
-                    // Create ticket channel
-                    const channel = await guild.channels.create({
-                        name: channelName,
-                        type: ChannelType.GuildText,
-                        permissionOverwrites: [
-                            {
-                                id: guild.id,
-                                deny: [PermissionFlagsBits.ViewChannel],
-                            },
-                            {
-                                id: user.id,
-                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles, PermissionFlagsBits.EmbedLinks],
-                            },
-                        ],
-                    }).catch(err => {
-                        console.error('[Error] Failed to create channel:', err);
-                        throw err;
-                    });
+                // Check if user already has a ticket (Optional, skipped for simplicity/reliability first)
 
-                    // Add support roles if they exist
+                // Create Channel
+                const channel = await guild.channels.create({
+                    name: channelName,
+                    type: ChannelType.GuildText,
+                    permissionOverwrites: [
+                        { id: guild.id, deny: [PermissionFlagsBits.ViewChannel] },
+                        { id: user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.AttachFiles] },
+                        { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageChannels] }
+                    ]
+                });
+
+                // Helper to add roles securely
+                const addRolePerms = async () => {
                     try {
-                        const supportRoles = db.getTicketSupportRoles();
+                        const supportRoles = db.getTicketSupportRoles ? db.getTicketSupportRoles() : (db.ticketSupportRoles || []);
+                        let added = false;
                         for (const roleId of supportRoles) {
                             const role = guild.roles.cache.get(roleId);
                             if (role) {
-                                await channel.permissionOverwrites.edit(role, {
-                                    ViewChannel: true,
-                                    SendMessages: true,
-                                    AttachFiles: true,
-                                    EmbedLinks: true,
-                                });
+                                await channel.permissionOverwrites.edit(role, { ViewChannel: true, SendMessages: true });
+                                added = true;
                             }
                         }
-
-                        // Also look for a role named "Support" or "Staff" if none configured
-                        if (supportRoles.length === 0) {
-                            const staffRole = guild.roles.cache.find(r => r.name.toLowerCase() === 'support' || r.name.toLowerCase() === 'staff');
-                            if (staffRole) {
-                                await channel.permissionOverwrites.edit(staffRole, {
-                                    ViewChannel: true,
-                                    SendMessages: true,
-                                    AttachFiles: true,
-                                    EmbedLinks: true,
-                                });
-                            }
+                        // Fallback
+                        if (!added) {
+                            const staff = guild.roles.cache.find(r => ['staff', 'support', 'admin', 'moderator'].includes(r.name.toLowerCase()));
+                            if (staff) await channel.permissionOverwrites.edit(staff, { ViewChannel: true, SendMessages: true });
                         }
-                    } catch (roleError) {
-                        console.error('[Warn] Failed to set support role permissions:', roleError);
-                    }
+                    } catch (e) { console.error("Error setting role perms:", e); }
+                };
+                await addRolePerms();
 
-                    const embed = new EmbedBuilder()
-                        .setTitle(`Ticket - ${type.toUpperCase()}`)
-                        .setDescription(`Hello ${user}, thank you for reaching out. Please describe your issue and wait for a staff member to assist you.`)
-                        .addFields(
-                            { name: 'Opened By', value: user.tag, inline: true },
-                            { name: 'Category', value: type, inline: true },
-                        )
-                        .setColor('#2B2D31')
-                        .setTimestamp();
-
-                    const row = new ActionRowBuilder()
-                        .addComponents(
-                            new ButtonBuilder()
-                                .setCustomId('claim_ticket')
-                                .setLabel('Claim Ticket')
-                                .setStyle(ButtonStyle.Success)
-                                .setEmoji('🙋‍♂️'),
-                            new ButtonBuilder()
-                                .setCustomId('close_ticket')
-                                .setLabel('Close Ticket')
-                                .setStyle(ButtonStyle.Danger)
-                                .setEmoji('🔒'),
-                        );
-
-                    await channel.send({ content: `${user} welcome!`, embeds: [embed], components: [row] });
-
+                // Save to DB
+                try {
                     db.createTicket({
                         GuildID: guild.id,
-                        TicketID: ticketId.toString(),
+                        TicketID: Date.now().toString(),
                         ChannelID: channel.id,
                         Closed: false,
                         Locked: false,
@@ -109,60 +71,57 @@ module.exports = {
                         ClaimedBy: null,
                         OpenBy: user.id
                     });
+                } catch (e) { console.error("DB Error on Create:", e); }
 
-                    await interaction.editReply({ content: `✅ Ticket created: ${channel}` });
-                }
-            } else if (interaction.isButton()) {
-                const { guild, user, channel } = interaction;
-                console.log(`[Interaction] Button: ${interaction.customId} by ${user.tag}`);
+                // Send Welcome Message
+                const embed = new EmbedBuilder()
+                    .setTitle(`${type.charAt(0).toUpperCase() + type.slice(1)} Ticket`)
+                    .setDescription(`Welcome ${user}! Please state your issue. A staff member will be with you shortly.`)
+                    .setColor('Green');
 
-                if (interaction.customId === 'claim_ticket') {
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('ticket_claim').setLabel('Claim').setStyle(ButtonStyle.Success).setEmoji('✋'),
+                    new ButtonBuilder().setCustomId('ticket_close').setLabel('Close').setStyle(ButtonStyle.Danger).setEmoji('🔒')
+                );
+
+                await channel.send({ content: `${user}`, embeds: [embed], components: [row] });
+                await interaction.editReply({ content: `✅ Ticket created: ${channel}` });
+                return;
+            }
+
+            // 3. Handle Ticket Buttons
+            if (interaction.isButton()) {
+                const { customId, channel, user, guild } = interaction;
+
+                if (customId === 'ticket_claim') {
+                    // Claim Logic
                     const ticket = db.getTicketByChannel(channel.id);
-                    if (!ticket) return interaction.reply({ content: 'Ticket not found in database.', ephemeral: true });
-                    if (ticket.Claimed) return interaction.reply({ content: `This ticket is already claimed by <@${ticket.ClaimedBy}>`, ephemeral: true });
+                    if (ticket && ticket.Claimed) return interaction.reply({ content: `Already claimed by <@${ticket.ClaimedBy}>`, ephemeral: true });
 
-                    await interaction.deferUpdate(); // Prevent timeout
+                    await interaction.deferUpdate();
 
-                    db.claimTicket(channel.id, user.id);
+                    if (ticket) db.claimTicket(channel.id, user.id);
 
-                    await channel.permissionOverwrites.edit(user, {
-                        ViewChannel: true,
-                        SendMessages: true,
-                        AttachFiles: true,
-                        EmbedLinks: true,
-                        ManageChannels: true,
-                    });
+                    // Update Perms
+                    await channel.permissionOverwrites.edit(user, { ViewChannel: true, SendMessages: true });
 
-                    const embed = new EmbedBuilder()
-                        .setDescription(`🙋‍♂️ This ticket has been claimed by ${user}`)
-                        .setColor('#FEE75C');
+                    await channel.send({ content: `✅ Ticket claimed by ${user}` });
 
-                    await channel.send({ embeds: [embed] });
-                } else if (interaction.customId === 'close_ticket') {
-                    await interaction.reply({ content: 'Ticket will be closed in 5 seconds...', ephemeral: true });
+                } else if (customId === 'ticket_close') {
+                    // Close Logic
+                    await interaction.reply({ content: 'Closing in 5 seconds...', ephemeral: true });
 
-                    db.closeTicket(channel.id);
+                    if (db.closeTicket) db.closeTicket(channel.id);
 
-                    setTimeout(async () => {
-                        try {
-                            await channel.delete();
-                        } catch (e) {
-                            console.error('[Error] Failed to delete ticket channel:', e);
-                        }
-                    }, 5000);
+                    setTimeout(() => channel.delete().catch(e => console.log("Delete error", e)), 5000);
                 }
             }
+
         } catch (error) {
-            console.error('[Error] Interaction Handler:', error);
-            try {
-                if (interaction.deferred || interaction.replied) {
-                    await interaction.editReply({ content: 'There was an error processing your request.', ephemeral: true });
-                } else {
-                    await interaction.reply({ content: 'There was an error processing your request.', ephemeral: true });
-                }
-            } catch (e) {
-                console.error('[Fatal Error] Failed to send error response:', e);
+            console.error(`[Fatal Interaction Error]`, error);
+            if (!interaction.replied && !interaction.deferred) {
+                try { await interaction.reply({ content: 'An error occurred.', ephemeral: true }); } catch (e) { }
             }
         }
-    },
+    }
 };
