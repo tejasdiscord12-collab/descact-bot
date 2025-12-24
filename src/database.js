@@ -77,22 +77,20 @@ module.exports = {
         const db = readDB();
         const index = db.memberInvites.findIndex(i => i.GuildID === guildId && i.MemberID === memberId);
         if (index !== -1) {
+            const oldInviterId = db.memberInvites[index].InviterID;
             db.memberInvites[index].InviterID = inviterId;
+            return oldInviterId; // Return old inviter if it's a rejoin
         } else {
             db.memberInvites.push({ GuildID: guildId, MemberID: memberId, InviterID: inviterId });
+            return null;
         }
-        writeDB(db);
     },
     getMemberInviter: (guildId, memberId) => {
         const db = readDB();
         const record = db.memberInvites.find(i => i.GuildID === guildId && i.MemberID === memberId);
         return record ? record.InviterID : null;
     },
-    removeMemberInvite: (guildId, memberId) => {
-        const db = readDB();
-        db.memberInvites = db.memberInvites.filter(i => !(i.GuildID === guildId && i.MemberID === memberId));
-        writeDB(db);
-    },
+    // Keep mappings to track rejoiners
 
     // Custom Commands
     addCustomCommand: (guildId, name, response) => {

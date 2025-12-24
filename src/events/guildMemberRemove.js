@@ -8,8 +8,7 @@ module.exports = {
         if (inviterId) {
             // Mark as 'left' in the database
             await db.addInvite(member.guild.id, inviterId, 1, 'left');
-            // Clean up the mapping
-            db.removeMemberInvite(member.guild.id, member.id);
+            // We NO LONGER remove the mapping here so we can track rejoins
         }
 
         // Update Cache (optional but good practice)
