@@ -3,6 +3,7 @@ const db = require('../database');
 
 module.exports = (client) => {
     client.checkGiveaways = async () => {
+        if (!db.getGiveaways) return console.log('db.getGiveaways is not defined');
         const giveaways = db.getGiveaways();
         const now = Date.now();
 
