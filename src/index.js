@@ -43,5 +43,20 @@ const functions = fs.readdirSync('./src/functions').filter(file => file.endsWith
     client.handleCommands(client.commands, './src/commands');
 
     console.log('Bot is starting...'.green);
-    client.login(process.env.Token);
+
+    const token = process.env.Token || process.env.token || process.env.TOKEN;
+
+    if (!token) {
+        console.log(colors.red(' [Error] :: No Token found in .env file! Make sure it says Token=YOUR_TOKEN'));
+        process.exit(1);
+    }
+
+    client.login(token.trim()).catch(err => {
+        if (err.code === 'TokenInvalid') {
+            console.log(colors.red(' [Error] :: The token you provided is INVALID!'));
+            console.log(colors.yellow(' Please Reset your token in the Discord Developer Portal and update your .env file.'));
+        } else {
+            console.error(err);
+        }
+    });
 })();
