@@ -200,5 +200,9 @@ module.exports = {
         const db = readDB();
         const record = db.autoRoles.find(r => r.GuildID === guildId);
         return record ? record.RoleID : null;
+    },
+    getTicketSupportRoles: () => {
+        const db = readDB();
+        return db.ticketSupportRoles || [];
     }
 };
