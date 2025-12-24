@@ -1,3 +1,4 @@
+// Force Sync Timestamp: 2025-12-24 11:13:30
 const { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require('discord.js');
 
 module.exports = {
