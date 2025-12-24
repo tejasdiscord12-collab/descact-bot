@@ -128,5 +128,55 @@ module.exports = {
         if (userWarns) userWarns.Content.push(newWarn);
         else db.warns.push({ GuildID: guildId, UserID: userId, UserTag: userTag, Content: [newWarn] });
         writeDB(db);
+    },
+
+    // Giveaways
+    getGiveaways: () => {
+        const db = readDB();
+        return db.giveaways || [];
+    },
+    createGiveaway: (giveawayData) => {
+        const db = readDB();
+        if (!db.giveaways) db.giveaways = [];
+        db.giveaways.push(giveawayData);
+        writeDB(db);
+    },
+    endGiveaway: (messageId) => {
+        const db = readDB();
+        if (!db.giveaways) return;
+        const giveaway = db.giveaways.find(g => g.MessageID === messageId);
+        if (giveaway) {
+            giveaway.Ended = true;
+            writeDB(db);
+        }
+    },
+
+    // Tickets
+    getTicketByChannel: (channelId) => {
+        const db = readDB();
+        return db.tickets ? db.tickets.find(t => t.ChannelID === channelId) : null;
+    },
+    claimTicket: (channelId, userId) => {
+        const db = readDB();
+        const ticket = (db.tickets || []).find(t => t.ChannelID === channelId);
+        if (ticket) {
+            ticket.Claimed = true;
+            ticket.ClaimedBy = userId;
+            writeDB(db);
+        }
+    },
+    closeTicket: (channelId) => {
+        const db = readDB();
+        const ticket = (db.tickets || []).find(t => t.ChannelID === channelId);
+        if (ticket) {
+            ticket.Closed = true;
+            writeDB(db);
+        }
+    },
+    createTicket: (ticketData) => {
+        const db = readDB();
+        if (!db.tickets) db.tickets = [];
+        db.tickets.push(ticketData);
+        writeDB(db);
     }
 };
