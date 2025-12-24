@@ -20,10 +20,20 @@ module.exports = (client) => {
             try {
                 console.log('Started refreshing application (/) commands.');
 
+                // Global Registration (Can take 1 hour)
                 await rest.put(
                     Routes.applicationCommands(process.env.CLIENT_ID),
                     { body: client.commandArray },
                 );
+
+                // Guild Specific Registration (Instant - if ID provided)
+                if (process.env.GUILD_ID) {
+                    await rest.put(
+                        Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+                        { body: client.commandArray },
+                    );
+                    console.log(`Successfully reloaded application (/) commands for GUILD: ${process.env.GUILD_ID}`);
+                }
 
                 console.log('Successfully reloaded application (/) commands GLOBALLY.');
             } catch (error) {
