@@ -15,7 +15,8 @@ if (!fs.existsSync(dbPath)) {
         giveaways: [],
         ticketSettings: [],
         ticketSupportRoles: [],
-        memberInvites: []
+        memberInvites: [],
+        autoRoles: []
     }, null, 4));
 }
 
@@ -29,7 +30,8 @@ const defaultDB = {
     giveaways: [],
     ticketSettings: [],
     ticketSupportRoles: [],
-    memberInvites: []
+    memberInvites: [],
+    autoRoles: []
 };
 
 function readDB() {
@@ -79,9 +81,11 @@ module.exports = {
         if (index !== -1) {
             const oldInviterId = db.memberInvites[index].InviterID;
             db.memberInvites[index].InviterID = inviterId;
+            writeDB(db);
             return oldInviterId; // Return old inviter if it's a rejoin
         } else {
             db.memberInvites.push({ GuildID: guildId, MemberID: memberId, InviterID: inviterId });
+            writeDB(db);
             return null;
         }
     },
@@ -182,5 +186,19 @@ module.exports = {
     getAllStatusSettings: () => {
         const db = readDB();
         return db.statusSettings || {};
+    },
+
+    // Auto Role
+    setAutoRole: (guildId, roleId) => {
+        const db = readDB();
+        const index = db.autoRoles.findIndex(r => r.GuildID === guildId);
+        if (index !== -1) db.autoRoles[index].RoleID = roleId;
+        else db.autoRoles.push({ GuildID: guildId, RoleID: roleId });
+        writeDB(db);
+    },
+    getAutoRole: (guildId) => {
+        const db = readDB();
+        const record = db.autoRoles.find(r => r.GuildID === guildId);
+        return record ? record.RoleID : null;
     }
 };
