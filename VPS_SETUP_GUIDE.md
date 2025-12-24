@@ -19,7 +19,7 @@ sudo apt install -y nodejs npm git
 ## Step 3: Clone your Bot
 Download your code from GitHub to the VPS:
 ```bash
-git clone https://github.com/tejasdiscord12-collab/clientbot.git
+git clone https://github.com/tejasdiscord12-collab/descact-bot.git
 cd clientbot
 ```
 
