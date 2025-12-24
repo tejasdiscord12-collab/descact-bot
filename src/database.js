@@ -178,5 +178,11 @@ module.exports = {
         if (!db.tickets) db.tickets = [];
         db.tickets.push(ticketData);
         writeDB(db);
+    },
+
+    // Status Settings
+    getAllStatusSettings: () => {
+        const db = readDB();
+        return db.statusSettings || {};
     }
 };
