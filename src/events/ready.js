@@ -6,6 +6,8 @@ module.exports = {
     once: true,
     async execute(client) {
         console.log(colors.cyan(`[Client] :: Logged in as ${client.user.tag}`));
+        console.log(colors.green(`[Client] :: Bot Version: v2.0 (Ticket System Updated) 🚀`));
+        console.log(colors.yellow(`[Client] :: Interactions should now log to console.`));
 
         // Cache Invites
         client.guilds.cache.forEach(async (guild) => {

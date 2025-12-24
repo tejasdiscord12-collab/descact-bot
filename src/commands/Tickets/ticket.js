@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ChannelType, PermissionFlagsBits, MessageFlags } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -43,7 +43,7 @@ module.exports = {
                 );
 
             await channel.send({ embeds: [embed], components: [row] });
-            return interaction.reply({ content: `✅ Ticket panel sent to ${channel}`, ephemeral: true });
+            return interaction.reply({ content: `✅ Ticket panel sent to ${channel}`, flags: MessageFlags.Ephemeral });
         }
     }
 };

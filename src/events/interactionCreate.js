@@ -1,4 +1,4 @@
-const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require('discord.js');
 const db = require('../database');
 
 module.exports = {
@@ -18,7 +18,7 @@ module.exports = {
 
             // 2. Handle Ticket Select Menu
             if (interaction.isStringSelectMenu() && interaction.customId === 'ticket_create_select') {
-                await interaction.deferReply({ ephemeral: true });
+                await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
                 const { guild, user, values } = interaction;
                 const type = values[0]; // purchase, support, or bug
